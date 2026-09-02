@@ -1,0 +1,9 @@
+# 私有数据挂载点：任务数据、记忆 repo 的 link 都放这里，一律不入库。
+# 这样私有仓库的地址、内容都不会出现在本公开仓库中。
+/data/
+
+node_modules/
+npm-debug.log*
+.env
+.env.*
+.DS_Store
