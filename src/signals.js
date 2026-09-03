@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { signalDirAbsolute, signalDirRelative } from './config.js';
+import { parseMessages, awaitingYourReply } from './messages.js';
 export const DECLARED_STATES = {
   working: { label: '进行中', action: '不用管' },
   done: { label: '完成', action: '去核实' },
@@ -160,18 +161,23 @@ export async function readSignals(taskId) {
     status: path.join(dir, 'STATUS.json'),
     handoff: path.join(dir, 'HANDOFF.md'),
     changes: path.join(dir, 'CHANGES.md'),
+    messages: path.join(dir, 'MESSAGES.md'),
   };
-  const [taskMd, todoMd, statusRaw, handoffMd, changesMd] = await Promise.all([
+  const [taskMd, todoMd, statusRaw, handoffMd, changesMd, messagesMd] = await Promise.all([
     readIfExists(files.task),
     readIfExists(files.todo),
     readIfExists(files.status),
     readIfExists(files.handoff),
     readIfExists(files.changes),
+    readIfExists(files.messages),
   ]);
   const mtimes = (await Promise.all(Object.values(files).map(mtimeOf))).filter(Boolean);
   const lastSignalMtime = mtimes.length
     ? new Date(Math.max(...mtimes.map((d) => d.getTime())))
     : null;
+
+  const parsedStatus = parseStatus(statusRaw);
+  const messages = parseMessages(messagesMd || '');
 
   return {
     dir,
@@ -183,14 +189,18 @@ export async function readSignals(taskId) {
       status: statusRaw !== null,
       handoff: handoffMd !== null,
       changes: changesMd !== null,
+      messages: messagesMd !== null,
     },
     taskMd: taskMd || '',
     todo: parseTodo(todoMd || ''),
-    status: parseStatus(statusRaw),
+    status: parsedStatus,
     handoffMd: handoffMd || '',
     handoffLint: lintHandoff(handoffMd || ''),
     // 改动明细：只有你主动要求时 agent 才会写，Foreman 只负责渲染
     changesMd: changesMd || '',
+    // 人机留言：Foreman 唯一会写入的文件
+    messages,
+    awaitingReply: awaitingYourReply(parsedStatus.state, messages),
     lastSignalMtime,
   };
 }

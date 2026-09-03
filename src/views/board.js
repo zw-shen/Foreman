@@ -42,7 +42,9 @@ function card(ins) {
 
   const question =
     ins.declared === 'awaiting_input' && ins.signals?.status?.data?.question
-      ? `<div class="qn">${esc(ins.signals.status.data.question)}</div>`
+      ? `<div class="qn">${esc(ins.signals.status.data.question)}${
+          ins.signals?.awaitingReply ? ' <strong>· 等你回话</strong>' : ' <em>· 已回话</em>'
+        }</div>`
       : '';
 
   const reason =

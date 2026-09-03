@@ -713,3 +713,47 @@ footer.foot {
 .db-msg.ok-text {
   color: var(--good);
 }
+
+
+/* ---------- 留言 ---------- */
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+.msg {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--r1);
+  background: var(--surface-2);
+  padding: var(--s2) var(--s3);
+}
+.msg.human {
+  border-left-color: var(--info);
+  background: var(--info-bg);
+}
+.msg.agent {
+  border-left-color: var(--neutral);
+}
+.msg-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin-bottom: var(--s1);
+}
+.msg-head .who {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.msg-head .when {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.msg-body :first-child {
+  margin-top: 0;
+}
+.msg-body :last-child {
+  margin-bottom: 0;
+}

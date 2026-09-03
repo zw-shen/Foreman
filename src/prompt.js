@@ -130,7 +130,31 @@ ${renderContextSetup(ctx)}
     ├── TASK.md      任务契约：背景、目标、验收标准、能做/不能做
     ├── TODO.md      待办清单
     ├── STATUS.json  当前状态（供 Foreman 机器读取）
-    └── HANDOFF.md   交接文档
+    ├── HANDOFF.md   交接文档
+    └── MESSAGES.md  与人的往来留言
+
+### 先读 MESSAGES.md
+
+**开工前先读 \`${dir}/MESSAGES.md\`**（如果存在）。人对你的答复、补充要求、纠正都在这里，
+不在你的会话历史里 —— 换个会话、换个 agent 接手时，那些内容只剩这个文件。
+
+格式是按时间追加的条目：
+
+    ## 2026-09-03 14:20 agent
+    数据库用 Postgres 还是 SQLite？
+
+    ## 2026-09-03 14:35 human
+    用 SQLite，不要引入新服务。
+
+规则：
+
+- **只追加，不要修改或删除已有条目。**
+- 你要提问时：既把问题写进 \`STATUS.json\` 的 \`question\`（这样看板上能直接看到），
+  也把同样的问题追加一条 \`agent\` 条目到 MESSAGES.md（这样留下历史）。
+- 看到新的 \`human\` 条目、问题已被答复后：把 \`state\` 从 \`awaiting_input\` 改回 \`working\`，
+  清空 \`question\`，然后继续干活。
+- MESSAGES.md 要和其他文件一起 commit。人的回复可能是 Foreman 直接写进去的、尚未提交，
+  你 commit 时连带提交即可。
 
 ### STATUS.json 格式
 

@@ -77,7 +77,10 @@ function fileStatus(present) {
   return `<div class="row">${f(present.task, 'TASK.md')}${f(present.todo, 'TODO.md')}${f(
     present.status,
     'STATUS.json',
-  )}${f(present.handoff, 'HANDOFF.md')}${f(present.changes, 'CHANGES.md')}</div>`;
+  )}${f(present.handoff, 'HANDOFF.md')}${f(present.changes, 'CHANGES.md')}${f(
+    present.messages,
+    'MESSAGES.md',
+  )}</div>`;
 }
 
 function todoPanel(todo) {
@@ -162,6 +165,49 @@ ${items}
 </section>`;
 }
 
+function messagesPanel(ins) {
+  const signals = ins.signals;
+  if (!signals) return '';
+  const id = encodeURIComponent(ins.task.id);
+  const entries = signals.messages || [];
+
+  const thread = entries.length
+    ? `<div class="thread">${entries
+        .map(
+          (e) => `<div class="msg ${e.role}">
+<div class="msg-head"><span class="who">${
+            e.role === 'human' ? '你' : e.role === 'agent' ? 'agent' : '(格式未知)'
+          }</span><span class="when">${esc(e.time)}</span></div>
+<div class="msg-body doc">${renderMarkdown(e.body)}</div>
+</div>`,
+        )
+        .join('')}</div>`
+    : `<p class="lede">还没有留言。</p>`;
+
+  const hint = signals.awaitingReply
+    ? `<div class="warn-box" style="margin-bottom:12px">agent 在等你回话。写下答复后它会在下次动作时读到，
+并把状态从「等待回答」改回「进行中」。</div>`
+    : '';
+
+  return `<section class="card">
+<div class="spread"><h2 style="margin:0">留言</h2>
+${signals.awaitingReply ? '<span class="badge warn">等你回话</span>' : ''}</div>
+<p class="lede">人和 agent 的往来记录，存在 context repo 的
+<code>${esc(signals.dirRel)}/MESSAGES.md</code>。
+agent 的会话历史会丢，这个文件不会 —— 换个 agent 接手也读得到。</p>
+${hint}
+${thread}
+<form class="stack" method="post" action="/tasks/${id}/reply" style="margin-top:16px">
+<label class="field">
+<span class="lbl">回话</span>
+<span class="hint">支持 Markdown。这是 Foreman 唯一会写进 context repo 的文件；它不会替 agent 改状态。</span>
+<textarea name="text" rows="4" required placeholder="用 SQLite，不要引入新服务。"></textarea>
+</label>
+<div class="row"><button type="submit">追加留言</button></div>
+</form>
+</section>`;
+}
+
 export function taskPage({ inspection, prompt }) {
   const ins = inspection;
   const t = ins.task;
@@ -186,7 +232,8 @@ ${ins.declaredAction ? `<span class="tag">你要做的：${esc(ins.declaredActio
   const question =
     ins.declared === 'awaiting_input' && signals?.status?.data?.question
       ? `<section class="card"><h2 style="margin-top:0">agent 在等你回答</h2>
-<p>${esc(signals.status.data.question)}</p></section>`
+<p>${esc(signals.status.data.question)}</p>
+<p class="lede">在下面的「留言」里回话。</p></section>`
       : '';
 
   const reason =
@@ -224,6 +271,7 @@ ${reason}
 ${metaPanel(ins)}
 ${signalsPanel}
 ${signals ? todoPanel(signals.todo) : ''}
+${messagesPanel(ins)}
 ${signals ? handoffPanel(signals) : ''}
 ${changesPanel(ins)}
 ${commitsPanel(ins)}

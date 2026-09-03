@@ -34,7 +34,9 @@ Foreman 是一个**对 agent 产出做反应的程序**。它不调用模型、�
 - **不是调度系统。** 不启动 agent、不管理进程、不做并发控制或任务认领。
 - **不是 agent 运行时。** 不代理、不转发、不拦截 agent 与模型之间的请求。
 - **不读你的代码仓库。** Foreman 只看 context repo。
-- **不写 context repo。** 里面的文件全部由 agent 创建和维护。
+- **不写 context repo。** 里面的文件全部由 agent 创建和维护，
+  唯一例外是 `MESSAGES.md`（你的回话，见 §7.6）—— 而且只写文件，不做 git 提交，
+  更不会去改 `STATUS.json`。
 - **不做数据库。** 无 DB，状态来自 git 和文件。
 - **不设运行超时。** 任务可以无限期运行，不会因为"太久没动静"被判失败。
 - **不做二次 LLM 诊断。** 失败原因由 agent 自己写。
@@ -149,6 +151,7 @@ tasks/<task-id>/
 ├── TODO.md      待办清单（checkbox）
 ├── STATUS.json  当前状态（机器读取）
 ├── HANDOFF.md   交接文档
+├── MESSAGES.md  人与 agent 的往来留言
 └── CHANGES.md   改动明细（仅在人要求时才写）
 ```
 
@@ -194,6 +197,35 @@ Foreman 会 lint：段落是否齐全、是否为空、「验证方式」里是�
 
 平时不需要写 `CHANGES.md`。任务页有「要求 agent 说明改动明细」入口：
 点击生成一段追加提示词 → 你贴回 agent 会话 → agent 写 `CHANGES.md` 并提交 → Foreman 渲染。
+
+### 7.6 留言：`MESSAGES.md`
+
+agent 用 `question` 提问后，答复需要一个落地的地方 —— 否则会话一关问答就丢了，
+换个 agent 接手更是无从得知。`MESSAGES.md` 就是这个通道，按时间追加条目：
+
+```markdown
+## 2026-09-03 14:20 agent
+
+数据库用 Postgres 还是 SQLite？
+
+## 2026-09-03 14:35 human
+
+用 SQLite，不要引入新服务。
+```
+
+任务页直接提供回话输入框，看板会标出「等你回话 / 已回话」
+（判定依据：声明态是 `awaiting_input` 且最后一条不是你发的）。
+
+**这是唯一的例外：Foreman 会写这一个文件。** 理由是人的回复本来就该由平台代笔。
+但它严格止步于此：
+
+- **绝不写 `STATUS.json`。** 状态是 agent 的声明，平台代写会毁掉「声明 vs 事实」这条分界线，
+  核实也就失去意义。所以回话之后 `state` 仍是 `awaiting_input`，
+  必须由 agent 自己读到留言、自己改回 `working`。
+- **不做 git 提交。** 只写文件，提交交给 agent 下次操作时连带完成。
+
+提示词相应要求 agent：开工前先读 `MESSAGES.md`、只追加不修改已有条目、
+提问时同时写 `question` 和一条 `agent` 留言、收到答复后把状态改回 `working` 并清空 `question`。
 
 ## 8. 提示词
 

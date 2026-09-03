@@ -8,6 +8,7 @@ import { inspect, contextState } from './verify.js';
 import { buildPrompt, changeReportPrompt, previewPrompt } from './prompt.js';
 import { knowledgeIndex } from './knowledge.js';
 import { listDir, makeDir } from './browse.js';
+import { appendMessage } from './messages.js';
 import { DEFAULT_PROMPT_TEMPLATE, DEFAULT_AGENT_RULES } from './prompt-template.js';
 import { boardPage } from './views/board.js';
 import { newTaskPage } from './views/new.js';
@@ -152,6 +153,24 @@ async function handleChangeReport(res, id) {
   html(res, changeReportPage({ task, prompt: changeReportPrompt(task) }));
 }
 
+async function handleReply(req, res, id) {
+  const task = await store.getTask(id);
+  if (!task) return text(res, '任务不存在', 404);
+  const form = parseForm(await readBody(req));
+  const target = `/tasks/${encodeURIComponent(id)}`;
+  const context = await contextState();
+  if (!context.mountExists) {
+    return text(res, `context 本地位置还不存在（${context.mountRel}），无法写入留言`, 400);
+  }
+  try {
+    // 只追加 MESSAGES.md，绝不触碰 STATUS.json —— 状态必须由 agent 自己声明
+    await appendMessage(id, 'human', form.text);
+    redirect(res, target);
+  } catch (e) {
+    text(res, `留言失败：${e.message}`, 400);
+  }
+}
+
 async function handlePatch(res, id, sha) {
   const task = await store.getTask(id);
   if (!task) return text(res, '任务不存在', 404);
@@ -238,6 +257,9 @@ const server = http.createServer(async (req, res) => {
 
     const reportMatch = /^\/tasks\/([^/]+)\/change-report$/.exec(pathname);
     if (method === 'GET' && reportMatch) return handleChangeReport(res, reportMatch[1]);
+
+    const replyMatch = /^\/tasks\/([^/]+)\/reply$/.exec(pathname);
+    if (method === 'POST' && replyMatch) return handleReply(req, res, replyMatch[1]);
 
     const patchMatch = /^\/tasks\/([^/]+)\/commits\/([^/]+)$/.exec(pathname);
     if (method === 'GET' && patchMatch) return handlePatch(res, patchMatch[1], patchMatch[2]);
